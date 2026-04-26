@@ -1,0 +1,253 @@
+<main class="game-shell">
+  <section *ngIf="screen() === 'menu'" class="setup-layout" aria-label="遊戲設定">
+    <div class="intro-panel">
+      <p class="eyebrow">Stroop Color Game</p>
+      <h1>看字說顏色</h1>
+      <p class="intro-copy">玩家回答的是文字實際顯示的顏色，不是文字內容。</p>
+
+      <div class="mode-switch" aria-label="選擇模式">
+        <button type="button" [class.active]="mode() === 'buttons'" (click)="chooseMode('buttons')">
+          按鈕答題版
+        </button>
+        <button type="button" [class.active]="mode() === 'host'" (click)="chooseMode('host')">
+          關主判定版
+        </button>
+      </div>
+
+      <button type="button" class="primary-action" (click)="startGame()">開始遊戲</button>
+      <p *ngIf="errorMessage()" class="error-message" role="alert">{{ errorMessage() }}</p>
+    </div>
+
+    <form class="settings-panel">
+      <h2>關主設定</h2>
+
+      <label>
+        每題字數
+        <input
+          type="number"
+          min="1"
+          [ngModel]="config().lettersPerQuestion"
+          (ngModelChange)="updateNumberSetting('lettersPerQuestion', $event)"
+          name="lettersPerQuestion"
+        >
+      </label>
+
+      <label>
+        總題數
+        <input
+          type="number"
+          min="1"
+          [ngModel]="config().totalQuestions"
+          (ngModelChange)="updateNumberSetting('totalQuestions', $event)"
+          name="totalQuestions"
+        >
+      </label>
+
+      <label>
+        文字與顏色選項
+      </label>
+
+      <div class="option-editor" aria-label="文字與顏色設定">
+        <div class="option-row option-header" aria-hidden="true">
+          <span>文字</span>
+          <span>顏色</span>
+          <span>操作</span>
+        </div>
+
+        <div class="option-row" *ngFor="let option of optionSettings()">
+          <input
+            type="text"
+            class="option-name-input"
+            [ngModel]="option.draftName"
+            (ngModelChange)="updateOptionDraftName(option.id, $event)"
+            [disabled]="!option.isEditing"
+            [name]="'option-name-' + option.id"
+          >
+
+          <div class="color-picker-wrap">
+            <button
+              type="button"
+              class="color-swatch-button"
+              [disabled]="!option.isEditing"
+              [style.background]="displayOptionColor(option)"
+              [attr.aria-label]="'選擇 ' + option.draftName + ' 的顏色'"
+              (click)="openColorPicker(option.id)"
+            ></button>
+            <span class="color-code">{{ displayOptionColor(option) }}</span>
+
+            <div class="picker-popover" *ngIf="activeColorPicker()?.optionId === option.id">
+              <div class="picker-preview-row">
+                <div class="picker-preview-swatch" [style.background]="activeColorPicker()?.draftHex"></div>
+                <strong>{{ activeColorPicker()?.draftHex }}</strong>
+              </div>
+
+              <div
+                class="picker-surface"
+                [style.background-color]="pickerHueColor()"
+                (pointerdown)="beginSaturationValueDrag($event)"
+              >
+                <div class="picker-surface-white"></div>
+                <div class="picker-surface-black"></div>
+                <div
+                  class="picker-cursor"
+                  [style.left]="pickerCursorLeft()"
+                  [style.top]="pickerCursorTop()"
+                ></div>
+              </div>
+
+              <div class="picker-hue">
+                <div class="picker-hue-track" (pointerdown)="beginHueDrag($event)">
+                  <div class="picker-hue-thumb" [style.left]="pickerHueLeft()"></div>
+                </div>
+              </div>
+
+              <label class="picker-hex">
+                HEX
+                <input
+                  type="text"
+                  maxlength="7"
+                  [ngModel]="activeColorPicker()?.draftHex"
+                  (ngModelChange)="updatePickerHexInput($event)"
+                  name="pickerHex"
+                >
+              </label>
+
+              <div class="picker-actions">
+                <button type="button" class="ghost-button" (click)="closeColorPicker()">取消</button>
+                <button type="button" class="primary-action picker-apply" (click)="applyColorPicker()">套用</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="option-actions">
+            <button
+              type="button"
+              class="icon-button ghost-button"
+              [attr.aria-label]="option.isEditing ? '完成編輯' : '編輯'"
+              [title]="option.isEditing ? '完成編輯' : '編輯'"
+              (click)="toggleOptionEditing(option.id)"
+            >
+              <ng-container *ngIf="option.isEditing; else editIconDone">✓</ng-container>
+              <ng-template #editIconDone>
+                <svg viewBox="0 0 24 24" aria-hidden="true" class="button-icon">
+                  <path
+                    d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zm2.92 2.33H5v-.92l9.06-9.06.92.92L5.92 19.58zM20.71 7.04a1.003 1.003 0 0 0 0-1.42L18.37 3.29a1.003 1.003 0 0 0-1.42 0l-1.13 1.13 3.75 3.75 1.14-1.13z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </ng-template>
+            </button>
+            <button
+              type="button"
+              class="icon-button danger-button"
+              aria-label="刪除"
+              title="刪除"
+              (click)="deleteOptionSetting(option.id)"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" class="button-icon">
+                <path
+                  d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 7h2v7h-2v-7zm4 0h2v7h-2v-7zM7 10h2v7H7v-7zm-1 10h12l1-12H5l1 12z"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button type="button" class="add-option-button" (click)="addOptionSetting()">＋ 新增顏色</button>
+      </div>
+    </form>
+  </section>
+
+  <section *ngIf="screen() === 'playing' && question() as currentQuestion" class="play-layout" aria-label="遊戲進行中">
+    <header class="scoreboard">
+      <div>
+        <span>模式</span>
+        <strong>{{ modeLabel() }}</strong>
+      </div>
+      <div>
+        <span>題號</span>
+        <strong>第 {{ questionNumber() }} / {{ config().totalQuestions }} 題</strong>
+      </div>
+      <div>
+        <span>累積時間</span>
+        <strong>{{ formattedElapsed() }}</strong>
+      </div>
+    </header>
+
+    <div class="question-stage">
+      <span
+        *ngFor="let token of currentQuestion.tokens"
+        class="question-token"
+        [class.light-token]="isLightColor(token.color.cssColor)"
+        [style.color]="token.color.cssColor"
+      >
+        {{ token.text }}
+      </span>
+    </div>
+
+    <section class="answer-panel">
+      <ng-container *ngIf="mode() === 'buttons'; else hostControls">
+        <div class="answer-progress">
+          <p class="answer-progress-title">請回答第 {{ currentAnswerIndex() + 1 }} 個字的顏色</p>
+          <p class="answer-progress-history" [class.empty]="!playerAnswers().length">
+            {{ playerAnswers().length ? '已答：' + playerAnswers().join('、') : '已答：' }}
+          </p>
+        </div>
+        <div class="button-grid" aria-label="顏色答案">
+          <button
+            *ngFor="let color of config().colorOptions"
+            type="button"
+            class="answer-button"
+            [class.light-answer]="isLightColor(color.cssColor)"
+            [style.--answer-color]="color.cssColor"
+            (click)="answer(color.name)"
+          >
+            {{ color.name }}
+          </button>
+        </div>
+      </ng-container>
+
+      <ng-template #hostControls>
+        <div class="host-tools">
+          <button type="button" class="fail-button" (click)="hostJudge(false)">
+            答錯
+          </button>
+          <button type="button" class="pass-button" (click)="hostJudge(true)">
+            過關
+          </button>
+        </div>
+      </ng-template>
+
+      <p *ngIf="resultMessage()" class="result-message" [class.correct]="answerState() === 'correct' || answerState() === 'host-pass'">
+        {{ resultMessage() }}
+      </p>
+
+      <div class="play-actions">
+        <button *ngIf="mode() === 'buttons'" type="button" class="next-button" [disabled]="!canGoNext()" (click)="nextQuestion()">
+          {{ isLastQuestion() ? '看結果' : '下一題' }}
+        </button>
+        <button type="button" class="secondary-action exit-button" (click)="backToMenu()">結束遊戲</button>
+      </div>
+    </section>
+  </section>
+
+  <section *ngIf="screen() === 'finished'" class="finish-panel" aria-label="遊戲結束">
+    <p class="eyebrow">完成</p>
+    <h1>看字說顏色</h1>
+    <dl class="summary-list">
+      <div>
+        <dt>模式</dt>
+        <dd>{{ modeLabel() }}</dd>
+      </div>
+      <div>
+        <dt>總時間</dt>
+        <dd>{{ formattedElapsed() }}</dd>
+      </div>
+    </dl>
+    <div class="finish-actions">
+      <button type="button" class="primary-action" (click)="replay()">再玩一次</button>
+      <button type="button" class="secondary-action" (click)="backToMenu()">回到模式選單</button>
+    </div>
+  </section>
+</main>
