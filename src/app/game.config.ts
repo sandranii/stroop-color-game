@@ -1,4 +1,5 @@
 export type GameMode = 'buttons' | 'host';
+export type GameVariant = 'basic' | 'advanced';
 
 export interface ColorOption {
   name: string;

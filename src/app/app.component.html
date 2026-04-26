@@ -3,7 +3,16 @@
     <div class="intro-panel">
       <p class="eyebrow">Stroop Color Game</p>
       <h1>看字說顏色</h1>
-      <p class="intro-copy">玩家回答的是文字實際顯示的顏色，不是文字內容。</p>
+      <p class="intro-copy">{{ variantDescription() }}</p>
+
+      <div class="variant-switch" aria-label="選擇版本">
+        <button type="button" [class.active]="variant() === 'basic'" (click)="chooseVariant('basic')">
+          基礎版
+        </button>
+        <button type="button" [class.active]="variant() === 'advanced'" (click)="chooseVariant('advanced')">
+          進階版
+        </button>
+      </div>
 
       <div class="mode-switch" aria-label="選擇模式">
         <button type="button" [class.active]="mode() === 'buttons'" (click)="chooseMode('buttons')">
@@ -162,6 +171,10 @@
   <section *ngIf="screen() === 'playing' && question() as currentQuestion" class="play-layout" aria-label="遊戲進行中">
     <header class="scoreboard">
       <div>
+        <span>版本</span>
+        <strong>{{ variantLabel() }}</strong>
+      </div>
+      <div>
         <span>模式</span>
         <strong>{{ modeLabel() }}</strong>
       </div>
@@ -179,6 +192,7 @@
       <span
         *ngFor="let token of currentQuestion.tokens"
         class="question-token"
+        [class.framed-token]="token.isFramed"
         [class.light-token]="isLightColor(token.color.cssColor)"
         [style.color]="token.color.cssColor"
       >
@@ -236,6 +250,10 @@
     <p class="eyebrow">完成</p>
     <h1>看字說顏色</h1>
     <dl class="summary-list">
+      <div>
+        <dt>版本</dt>
+        <dd>{{ variantLabel() }}</dd>
+      </div>
       <div>
         <dt>模式</dt>
         <dd>{{ modeLabel() }}</dd>

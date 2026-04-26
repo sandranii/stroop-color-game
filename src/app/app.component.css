@@ -79,6 +79,14 @@ h2 {
   margin-bottom: 20px;
 }
 
+.variant-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.variant-switch button,
 .mode-switch button,
 .primary-action,
 .secondary-action,
@@ -98,6 +106,12 @@ h2 {
   background: #e8eef6;
 }
 
+.variant-switch button {
+  color: #334155;
+  background: #e8eef6;
+}
+
+.variant-switch button.active,
 .mode-switch button.active {
   color: #ffffff;
   background: #124e78;
@@ -377,7 +391,7 @@ textarea {
 
 .scoreboard {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 20px;
 }
@@ -425,6 +439,13 @@ textarea {
   font-weight: 950;
   line-height: 1;
   text-align: center;
+}
+
+.question-token.framed-token {
+  min-width: 1.18em;
+  padding: 0.08em 0.12em;
+  border: 6px solid currentColor;
+  border-radius: 8px;
 }
 
 .question-token.light-token {
@@ -539,7 +560,7 @@ button:disabled {
 
 .summary-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin: 36px 0;
 }
@@ -579,6 +600,7 @@ button:disabled {
 
   .host-tools,
   .mode-switch,
+  .variant-switch,
   .option-row {
     grid-template-columns: 1fr;
   }

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnDestroy, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DEFAULT_GAME_CONFIG, DEFAULT_OPTION_SETTINGS, GameConfig, GameMode, OptionSetting, buildColorOptions } from './game.config';
+import { DEFAULT_GAME_CONFIG, DEFAULT_OPTION_SETTINGS, GameConfig, GameMode, GameVariant, OptionSetting, buildColorOptions } from './game.config';
 import { GameQuestion, generateQuestion } from './question-generator';
 
 type ScreenState = 'menu' | 'playing' | 'finished';
@@ -46,6 +46,7 @@ const INITIAL_OPTION_SETTINGS = INITIAL_SETTINGS.optionSettings.map((option) => 
 export class AppComponent implements OnDestroy {
   readonly screen = signal<ScreenState>('menu');
   readonly mode = signal<GameMode>('buttons');
+  readonly variant = signal<GameVariant>('basic');
   readonly config = signal<GameConfig>({
     ...structuredClone(DEFAULT_GAME_CONFIG),
     lettersPerQuestion: INITIAL_SETTINGS.lettersPerQuestion,
@@ -65,11 +66,15 @@ export class AppComponent implements OnDestroy {
   readonly optionSettings = signal<EditableOptionSetting[]>(INITIAL_OPTION_SETTINGS);
 
   readonly modeLabel = computed(() => this.mode() === 'buttons' ? '按鈕答題版' : '關主判定版');
+  readonly variantLabel = computed(() => this.variant() === 'basic' ? '基礎版' : '進階版');
+  readonly variantDescription = computed(() => this.variant() === 'basic'
+    ? '玩家回答的是文字實際顯示的顏色，不是文字內容。'
+    : '有方框時回答文字內容，沒有方框時回答文字實際顯示的顏色。');
   readonly isLastQuestion = computed(() => this.questionNumber() >= this.config().totalQuestions);
   readonly canGoNext = computed(() => this.answerState() === 'correct' || this.answerState() === 'host-pass');
   readonly formattedElapsed = computed(() => `${this.elapsedSeconds().toFixed(1)} 秒`);
   readonly currentAnswerIndex = computed(() => this.playerAnswers().length);
-  readonly answerSequenceText = computed(() => this.question()?.answers.map((answer) => answer.name).join('、') ?? '');
+  readonly answerSequenceText = computed(() => this.question()?.answers.join('、') ?? '');
 
   private timerId: number | null = null;
   private startedAt = 0;
@@ -101,6 +106,12 @@ export class AppComponent implements OnDestroy {
 
   chooseMode(mode: GameMode): void {
     this.mode.set(mode);
+    this.screen.set('menu');
+    this.errorMessage.set('');
+  }
+
+  chooseVariant(variant: GameVariant): void {
+    this.variant.set(variant);
     this.screen.set('menu');
     this.errorMessage.set('');
   }
@@ -138,7 +149,7 @@ export class AppComponent implements OnDestroy {
     const answerIndex = this.currentAnswerIndex();
     const expectedAnswer = currentQuestion.answers[answerIndex];
 
-    if (expectedAnswer.name === colorName) {
+    if (expectedAnswer === colorName) {
       const nextPlayerAnswers = [...this.playerAnswers(), colorName];
       this.playerAnswers.set(nextPlayerAnswers);
 
@@ -431,11 +442,11 @@ export class AppComponent implements OnDestroy {
 
   private createQuestion(): void {
     try {
-      const nextQuestion = generateQuestion(this.config());
+      const nextQuestion = generateQuestion(this.config(), this.variant());
       this.question.set(nextQuestion);
 
       if (this.mode() === 'host') {
-        console.info(`看字說顏色 第 ${this.questionNumber()} 題正解：${nextQuestion.answers.map((answer) => answer.name).join('、')}`);
+        console.info(`看字說顏色 ${this.variantLabel()} 第 ${this.questionNumber()} 題正解：${nextQuestion.answers.join('、')}`);
       }
     } catch (error) {
       this.stopTimer();
