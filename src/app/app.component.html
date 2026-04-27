@@ -256,6 +256,14 @@
         <button *ngIf="mode() === 'buttons'" type="button" class="next-button" [disabled]="!canGoNext()" (click)="nextQuestion()">
           {{ isLastQuestion() ? '看結果' : '下一題' }}
         </button>
+        <button
+          type="button"
+          class="secondary-action export-button"
+          [disabled]="isExportingPpt() || !questionSet().length"
+          (click)="exportPpt()"
+        >
+          {{ isExportingPpt() ? '匯出中...' : '匯出 PPT' }}
+        </button>
         <button type="button" class="secondary-action exit-button" (click)="backToMenu()">結束遊戲</button>
       </div>
     </section>
@@ -280,6 +288,14 @@
     </dl>
     <div class="finish-actions">
       <button type="button" class="primary-action" (click)="replay()">再玩一次</button>
+      <button
+        type="button"
+        class="secondary-action"
+        [disabled]="isExportingPpt() || !questionSet().length"
+        (click)="exportPpt()"
+      >
+        {{ isExportingPpt() ? '匯出中...' : '匯出 PPT' }}
+      </button>
       <button type="button" class="secondary-action" (click)="backToMenu()">回到模式選單</button>
     </div>
   </section>

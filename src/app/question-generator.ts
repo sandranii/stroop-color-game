@@ -55,6 +55,17 @@ export function generateQuestion(
   return question;
 }
 
+export function generateQuestionSet(
+  config: GameConfig,
+  variant: GameVariant,
+  advancedBackgroundEnabled: boolean
+): GameQuestion[] {
+  return Array.from(
+    { length: Math.max(1, Math.floor(config.totalQuestions)) },
+    () => generateQuestion(config, variant, advancedBackgroundEnabled)
+  );
+}
+
 function pickRandom<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }

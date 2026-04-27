@@ -2,7 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnDestroy, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DEFAULT_GAME_CONFIG, DEFAULT_OPTION_SETTINGS, GameConfig, GameMode, GameVariant, OptionSetting, buildColorOptions } from './game.config';
-import { GameQuestion, generateQuestion } from './question-generator';
+import { exportGameQuestionsPpt } from './ppt-export';
+import { GameQuestion, generateQuestionSet } from './question-generator';
 
 type ScreenState = 'menu' | 'playing' | 'finished';
 type AnswerState = 'idle' | 'correct' | 'host-pass';
@@ -57,6 +58,7 @@ export class AppComponent implements OnDestroy {
     colorOptions: buildColorOptions(INITIAL_SETTINGS.optionSettings)
   });
   readonly question = signal<GameQuestion | null>(null);
+  readonly questionSet = signal<GameQuestion[]>([]);
   readonly questionNumber = signal(0);
   readonly elapsedSeconds = signal(0);
   readonly answerState = signal<AnswerState>('idle');
@@ -66,6 +68,7 @@ export class AppComponent implements OnDestroy {
   readonly errorMessage = signal('');
   readonly activeColorPicker = signal<ColorPickerState | null>(null);
   readonly optionSettings = signal<EditableOptionSetting[]>(INITIAL_OPTION_SETTINGS);
+  readonly isExportingPpt = signal(false);
 
   readonly modeLabel = computed(() => this.mode() === 'buttons' ? '按鈕答題版' : '關主判定版');
   readonly variantLabel = computed(() => this.variant() === 'basic' ? '基礎版' : '進階版');
@@ -132,18 +135,24 @@ export class AppComponent implements OnDestroy {
       return;
     }
 
-    this.config.set(nextConfig);
-    this.questionNumber.set(1);
-    this.elapsedSeconds.set(0);
-    this.answerState.set('idle');
-    this.playerAnswers.set([]);
-    this.resultMessage.set('');
-    this.showAnswer.set(false);
-    this.errorMessage.set('');
-    this.screen.set('playing');
-    this.startedAt = performance.now();
-    this.startTimer();
-    this.createQuestion();
+    try {
+      const nextQuestionSet = generateQuestionSet(nextConfig, this.variant(), this.advancedBackgroundEnabled());
+      this.config.set(nextConfig);
+      this.questionSet.set(nextQuestionSet);
+      this.questionNumber.set(1);
+      this.elapsedSeconds.set(0);
+      this.answerState.set('idle');
+      this.playerAnswers.set([]);
+      this.resultMessage.set('');
+      this.showAnswer.set(false);
+      this.errorMessage.set('');
+      this.screen.set('playing');
+      this.startedAt = performance.now();
+      this.startTimer();
+      this.createQuestion();
+    } catch (error) {
+      this.errorMessage.set(error instanceof Error ? error.message : '題目產生失敗。');
+    }
   }
 
   answer(colorName: string): void {
@@ -226,10 +235,34 @@ export class AppComponent implements OnDestroy {
     this.startGame();
   }
 
+  async exportPpt(): Promise<void> {
+    if (this.isExportingPpt() || this.questionSet().length === 0) {
+      return;
+    }
+
+    this.isExportingPpt.set(true);
+
+    try {
+      await exportGameQuestionsPpt({
+        config: this.config(),
+        questions: this.questionSet(),
+        variant: this.variant(),
+        advancedBackgroundEnabled: this.advancedBackgroundEnabled()
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'PPT 匯出失敗。';
+      this.resultMessage.set(message);
+      console.error('PPT export failed:', error);
+    } finally {
+      this.isExportingPpt.set(false);
+    }
+  }
+
   backToMenu(): void {
     this.stopTimer();
     this.screen.set('menu');
     this.question.set(null);
+    this.questionSet.set([]);
     this.answerState.set('idle');
     this.playerAnswers.set([]);
     this.resultMessage.set('');
@@ -448,17 +481,19 @@ export class AppComponent implements OnDestroy {
   }
 
   private createQuestion(): void {
-    try {
-      const nextQuestion = generateQuestion(this.config(), this.variant(), this.advancedBackgroundEnabled());
-      this.question.set(nextQuestion);
+    const nextQuestion = this.questionSet()[this.questionNumber() - 1];
 
-      if (this.mode() === 'host') {
-        console.info(`第 ${this.questionNumber()} 題：${nextQuestion.answers.join('、')}`);
-      }
-    } catch (error) {
+    if (!nextQuestion) {
       this.stopTimer();
-      this.errorMessage.set(error instanceof Error ? error.message : '題目產生失敗。');
+      this.errorMessage.set('題目產生失敗。');
       this.screen.set('menu');
+      return;
+    }
+
+    this.question.set(nextQuestion);
+
+    if (this.mode() === 'host') {
+      console.info(`第 ${this.questionNumber()} 題：${nextQuestion.answers.join('、')}`);
     }
   }
 
