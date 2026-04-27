@@ -3,6 +3,7 @@ import { ColorOption, GameConfig, GameVariant } from './game.config';
 export interface QuestionToken {
   text: string;
   color: ColorOption;
+  backgroundColor: ColorOption | null;
   isFramed: boolean;
   expectedAnswer: string;
 }
@@ -12,7 +13,11 @@ export interface GameQuestion {
   answers: string[];
 }
 
-export function generateQuestion(config: GameConfig, variant: GameVariant): GameQuestion {
+export function generateQuestion(
+  config: GameConfig,
+  variant: GameVariant,
+  advancedBackgroundEnabled: boolean
+): GameQuestion {
   const textOptions = config.textOptions.map((text) => text.trim()).filter(Boolean);
   const colorOptions = config.colorOptions.filter((color) => color.name.trim() && color.cssColor.trim());
 
@@ -35,7 +40,13 @@ export function generateQuestion(config: GameConfig, variant: GameVariant): Game
     throw new Error('每題字數大於 1 時，至少需要 2 個文字選項，避免相鄰文字重複。');
   }
 
-  const question = buildQuestionWithAdjacencyRules(count, textOptions, usableAnswers, variant);
+  const question = buildQuestionWithAdjacencyRules(
+    count,
+    textOptions,
+    usableAnswers,
+    variant,
+    advancedBackgroundEnabled
+  );
 
   if (!question) {
     throw new Error('目前設定無法產生符合規則的題目，請增加文字或顏色選項。');
@@ -52,7 +63,8 @@ function buildQuestionWithAdjacencyRules(
   count: number,
   textOptions: string[],
   usableAnswers: ColorOption[],
-  variant: GameVariant
+  variant: GameVariant,
+  advancedBackgroundEnabled: boolean
 ): GameQuestion | null {
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const tokens: QuestionToken[] = [];
@@ -67,7 +79,7 @@ function buildQuestionWithAdjacencyRules(
       }
 
       const answer = pickRandom(availableAnswers);
-      const availableTexts = textOptions.filter((text) => text !== answer.name && text !== previousText);
+      const availableTexts = textOptions.filter((text) => text !== previousText && text !== answer.name);
 
       if (availableTexts.length === 0) {
         break;
@@ -77,13 +89,14 @@ function buildQuestionWithAdjacencyRules(
       tokens.push({
         text,
         color: answer,
+        backgroundColor: null,
         isFramed: false,
         expectedAnswer: answer.name
       });
     }
 
     if (tokens.length === count) {
-      applyVariantRules(tokens, variant);
+      applyVariantRules(tokens, variant, usableAnswers, advancedBackgroundEnabled);
       return { answers: tokens.map((token) => token.expectedAnswer), tokens };
     }
   }
@@ -91,7 +104,12 @@ function buildQuestionWithAdjacencyRules(
   return null;
 }
 
-function applyVariantRules(tokens: QuestionToken[], variant: GameVariant): void {
+function applyVariantRules(
+  tokens: QuestionToken[],
+  variant: GameVariant,
+  usableAnswers: ColorOption[],
+  advancedBackgroundEnabled: boolean
+): void {
   if (variant === 'basic') {
     return;
   }
@@ -113,4 +131,13 @@ function applyVariantRules(tokens: QuestionToken[], variant: GameVariant): void 
     tokens[forcedIndex].isFramed = true;
     tokens[forcedIndex].expectedAnswer = tokens[forcedIndex].text;
   }
+
+  if (!advancedBackgroundEnabled) {
+    return;
+  }
+
+  tokens.forEach((token) => {
+    const backgroundChoices = usableAnswers.filter((color) => color.name !== token.color.name);
+    token.backgroundColor = backgroundChoices.length > 0 ? pickRandom(backgroundChoices) : null;
+  });
 }

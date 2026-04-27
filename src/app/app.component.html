@@ -52,6 +52,16 @@
         >
       </label>
 
+      <label *ngIf="variant() === 'advanced'" class="toggle-row">
+        <span>加入背景顏色干擾</span>
+        <input
+          type="checkbox"
+          [ngModel]="advancedBackgroundEnabled()"
+          (ngModelChange)="toggleAdvancedBackground($event)"
+          name="advancedBackgroundEnabled"
+        >
+      </label>
+
       <label>
         文字與顏色選項
       </label>
@@ -191,12 +201,17 @@
     <div class="question-stage">
       <span
         *ngFor="let token of currentQuestion.tokens"
-        class="question-token"
+        class="question-token-frame"
         [class.framed-token]="token.isFramed"
-        [class.light-token]="isLightColor(token.color.cssColor)"
         [style.color]="token.color.cssColor"
+        [style.background-color]="token.backgroundColor?.cssColor ?? 'transparent'"
       >
-        {{ token.text }}
+        <span
+          class="question-token"
+          [class.light-token]="isLightColor(token.color.cssColor)"
+        >
+          {{ token.text }}
+        </span>
       </span>
     </div>
 

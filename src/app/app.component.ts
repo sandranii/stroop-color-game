@@ -25,6 +25,7 @@ interface PersistedSettings {
   lettersPerQuestion: number;
   totalQuestions: number;
   optionSettings: OptionSetting[];
+  advancedBackgroundEnabled: boolean;
 }
 
 const STORAGE_KEY = 'stroop-color-game-settings';
@@ -47,6 +48,7 @@ export class AppComponent implements OnDestroy {
   readonly screen = signal<ScreenState>('menu');
   readonly mode = signal<GameMode>('buttons');
   readonly variant = signal<GameVariant>('basic');
+  readonly advancedBackgroundEnabled = signal(INITIAL_SETTINGS.advancedBackgroundEnabled);
   readonly config = signal<GameConfig>({
     ...structuredClone(DEFAULT_GAME_CONFIG),
     lettersPerQuestion: INITIAL_SETTINGS.lettersPerQuestion,
@@ -114,6 +116,11 @@ export class AppComponent implements OnDestroy {
     this.variant.set(variant);
     this.screen.set('menu');
     this.errorMessage.set('');
+  }
+
+  toggleAdvancedBackground(enabled: boolean): void {
+    this.advancedBackgroundEnabled.set(enabled);
+    this.persistSettings();
   }
 
   startGame(): void {
@@ -442,11 +449,11 @@ export class AppComponent implements OnDestroy {
 
   private createQuestion(): void {
     try {
-      const nextQuestion = generateQuestion(this.config(), this.variant());
+      const nextQuestion = generateQuestion(this.config(), this.variant(), this.advancedBackgroundEnabled());
       this.question.set(nextQuestion);
 
       if (this.mode() === 'host') {
-        console.info(`看字說顏色 ${this.variantLabel()} 第 ${this.questionNumber()} 題正解：${nextQuestion.answers.join('、')}`);
+        console.info(`第 ${this.questionNumber()} 題：${nextQuestion.answers.join('、')}`);
       }
     } catch (error) {
       this.stopTimer();
@@ -489,6 +496,7 @@ export class AppComponent implements OnDestroy {
     savePersistedSettings({
       lettersPerQuestion: this.config().lettersPerQuestion,
       totalQuestions: this.config().totalQuestions,
+      advancedBackgroundEnabled: this.advancedBackgroundEnabled(),
       optionSettings: this.optionSettings()
         .map(({ id, name, cssColor, draftName, draftColor, isEditing }) => ({
           id,
@@ -619,7 +627,8 @@ function loadPersistedSettings(): PersistedSettings {
   const fallback: PersistedSettings = {
     lettersPerQuestion: DEFAULT_GAME_CONFIG.lettersPerQuestion,
     totalQuestions: DEFAULT_GAME_CONFIG.totalQuestions,
-    optionSettings: DEFAULT_OPTION_SETTINGS
+    optionSettings: DEFAULT_OPTION_SETTINGS,
+    advancedBackgroundEnabled: false
   };
 
   if (typeof window === 'undefined') {
@@ -656,7 +665,10 @@ function loadPersistedSettings(): PersistedSettings {
       totalQuestions: typeof parsed.totalQuestions === 'number'
         ? Math.max(1, Math.floor(parsed.totalQuestions))
         : fallback.totalQuestions,
-      optionSettings: optionSettings.length > 0 ? optionSettings : fallback.optionSettings
+      optionSettings: optionSettings.length > 0 ? optionSettings : fallback.optionSettings,
+      advancedBackgroundEnabled: typeof parsed.advancedBackgroundEnabled === 'boolean'
+        ? parsed.advancedBackgroundEnabled
+        : fallback.advancedBackgroundEnabled
     };
   } catch {
     return fallback;
