@@ -206,10 +206,7 @@
         [style.color]="token.color.cssColor"
         [style.background-color]="token.backgroundColor?.cssColor ?? 'transparent'"
       >
-        <span
-          class="question-token"
-          [class.light-token]="isLightColor(token.color.cssColor)"
-        >
+        <span class="question-token">
           {{ token.text }}
         </span>
       </span>

@@ -330,8 +330,7 @@ function drawTokenTile(
     align: 'center',
     valign: 'middle',
     margin: [0.02, 0, 0, 0],
-    fit: 'shrink',
-    outline: isWhite(token.color) ? { color: '111827', size: 2.5 } : undefined
+    fit: 'shrink'
   });
 }
 
@@ -416,8 +415,4 @@ function buildFileName(variant: GameVariant): string {
 
 function toPptColor(color: string): string {
   return color.replace('#', '').toUpperCase();
-}
-
-function isWhite(color: string): boolean {
-  return color.trim().toUpperCase() === '#FFFFFF';
 }

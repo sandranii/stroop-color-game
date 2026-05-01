@@ -472,10 +472,6 @@ textarea {
   height: 100%;
 }
 
-.question-token.light-token {
-  -webkit-text-stroke: 2px #111827;
-}
-
 .answer-panel {
   margin-top: 20px;
   padding: 24px;
