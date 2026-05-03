@@ -44,13 +44,12 @@ function addIntroSlide(pptx: any, variant: GameVariant, advancedBackgroundEnable
   const rules = variant === 'basic'
     ? [
         '回答每個字實際顯示的顏色，不是文字內容。',
-        '文字內容與顯示顏色不同。',
         '依序回答整題所有字，全部答對才算完成該題。'
       ]
     : [
         '有方框時回答文字內容，沒有方框時回答顯示顏色。',
-        '文字內容與顯示顏色不同。',
-        advancedBackgroundEnabled ? '背景色只是干擾，不是答案。' : '請依照是否有方框判斷回答規則。'
+        '依序回答整題所有字，全部答對才算完成該題。'
+        // advancedBackgroundEnabled ? '背景色只是干擾，不是答案。' : '請依照是否有方框判斷回答規則。'
       ];
 
   slide.addText('看字說顏色', {
@@ -85,15 +84,6 @@ function addIntroSlide(pptx: any, variant: GameVariant, advancedBackgroundEnable
       color: TEXT_DARK,
       margin: 0
     });
-  });
-
-  slide.addText('建議流程：先展示題目頁並計時，最後再查看總解答頁。', {
-    x: 1.15, y: 5.35, w: 10.1, h: 0.4,
-    fontFace: 'Noto Sans TC',
-    fontSize: 18,
-    color: TEXT_MUTED,
-    italic: true,
-    margin: 0
   });
 }
 
